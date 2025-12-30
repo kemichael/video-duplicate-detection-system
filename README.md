@@ -1,4 +1,6 @@
 # 動画重複削除システム
+<img width="1322" height="619" alt="image" src="https://github.com/user-attachments/assets/981815d7-63e7-4351-9028-4c5212208e1d" />
+
 
 指定したフォルダ内の重複動画ファイルを検出し、削除（ゴミ箱へ移動）するためのWebアプリケーションです。
 
