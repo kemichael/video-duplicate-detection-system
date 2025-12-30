@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>動画重複削除システム</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>動画重複削除システム</h1>
+            <p>指定したフォルダ内の重複動画を検出し、整理します。</p>
+        </header>
+
+        <main>
+            <div class="search-box">
+                <input type="text" id="folderPath" placeholder="フォルダパスを入力 (例: /Users/name/Movies)" />
+                <button id="folderSelectBtn">フォルダ選択</button>
+                <button id="scanBtn">スキャン開始</button>
+                <input type="file" id="folderPicker" webkitdirectory directory multiple style="display:none;" />
+            </div>
+
+            <div id="loading" class="hidden">
+                <div class="spinner"></div>
+                <p>スキャン中...</p>
+            </div>
+
+            <div id="results" class="hidden">
+                <div class="results-header">
+                    <h2>検出された重複</h2>
+                    <button id="deleteBtn" class="danger-btn" disabled>選択したファイルを削除</button>
+                </div>
+                <div id="duplicatesList"></div>
+            </div>
+            
+            <div id="emptyState" class="hidden">
+                <p>重複ファイルは見つかりませんでした。</p>
+            </div>
+        </main>
+    </div>
+
+    <div id="modalOverlay" class="modal-overlay hidden">
+        <div class="modal">
+            <h3 id="modalTitle">確認</h3>
+            <p id="modalMessage">メッセージ</p>
+            <div class="modal-actions">
+                <button id="modalCancelBtn" class="secondary-btn">キャンセル</button>
+                <button id="modalConfirmBtn" class="danger-btn">削除する</button>
+                <button id="modalOkBtn" class="primary-btn hidden">OK</button>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
