@@ -35,6 +35,16 @@ function formatSize(bytes) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
+function formatDuration(seconds) {
+    if (seconds == null || !isFinite(seconds) || seconds < 0) return '不明';
+    const total = Math.round(seconds);
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    const pad = (n) => String(n).padStart(2, '0');
+    return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
+}
+
 function showModal(title, message, type = 'confirm') {
     return new Promise((resolve) => {
         modalTitle.textContent = title;
@@ -139,18 +149,28 @@ function renderResults() {
         const groupDiv = document.createElement('div');
         groupDiv.className = 'duplicate-group';
 
+        const headerDiv = document.createElement('div');
+        headerDiv.className = 'group-header';
+
+        const badge = document.createElement('span');
+        const isVisual = group.type === 'visual';
+        badge.className = `group-type-badge ${isVisual ? 'visual' : 'binary'}`;
+        badge.textContent = isVisual ? 'サムネイル類似' : 'バイナリ一致';
+        headerDiv.appendChild(badge);
+
         const infoDiv = document.createElement('div');
         infoDiv.className = 'group-info';
         infoDiv.innerHTML = `
             <span>サイズ: ${formatSize(group.size)}</span>
             <span>重複数: ${group.files.length}</span>
         `;
-        groupDiv.appendChild(infoDiv);
+        headerDiv.appendChild(infoDiv);
+        groupDiv.appendChild(headerDiv);
 
         group.files.forEach(file => {
             const fileItem = document.createElement('div');
             fileItem.className = 'file-item';
-            
+
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
             checkbox.value = file.path;
@@ -158,25 +178,20 @@ function renderResults() {
 
             const thumbWrapper = document.createElement('div');
             thumbWrapper.className = 'file-thumbnail';
-            const preview = document.createElement('video');
-            preview.src = `/api/video?path=${encodeURIComponent(file.path)}`;
-            preview.preload = 'metadata';
-            preview.muted = true;
-            preview.playsInline = true;
-            preview.setAttribute('tabindex', '-1');
-            preview.addEventListener('loadedmetadata', () => {
-                try {
-                    if (preview.duration > 0.2) {
-                        preview.currentTime = 0.1;
-                    }
-                } catch (_) {
-                    // Ignore seek errors
-                }
-            });
-            preview.addEventListener('seeked', () => {
-                preview.pause();
-            });
-            thumbWrapper.appendChild(preview);
+            if (file.thumbnailUrl) {
+                const img = document.createElement('img');
+                img.loading = 'lazy';
+                img.alt = '';
+                img.src = file.thumbnailUrl;
+                img.addEventListener('error', () => {
+                    thumbWrapper.classList.add('no-thumb');
+                    thumbWrapper.textContent = 'No Thumb';
+                });
+                thumbWrapper.appendChild(img);
+            } else {
+                thumbWrapper.classList.add('no-thumb');
+                thumbWrapper.textContent = 'No Thumb';
+            }
 
             const infoWrapper = document.createElement('div');
             infoWrapper.className = 'file-info';
@@ -186,11 +201,16 @@ function renderResults() {
             pathSpan.textContent = file.path;
 
             const sizeSpan = document.createElement('span');
-            sizeSpan.className = 'file-size';
+            sizeSpan.className = 'file-meta';
             sizeSpan.textContent = `サイズ: ${formatSize(file.size)}`;
+
+            const durationSpan = document.createElement('span');
+            durationSpan.className = 'file-meta';
+            durationSpan.textContent = `長さ: ${formatDuration(file.durationSec)}`;
 
             infoWrapper.appendChild(pathSpan);
             infoWrapper.appendChild(sizeSpan);
+            infoWrapper.appendChild(durationSpan);
 
             fileItem.appendChild(checkbox);
             fileItem.appendChild(thumbWrapper);
