@@ -20,8 +20,14 @@
             <div class="search-box">
                 <input type="text" id="folderPath" placeholder="フォルダパスを入力 (例: /Users/name/Movies)" />
                 <button id="folderSelectBtn">フォルダ選択</button>
+                <button id="addPathBtn">追加</button>
                 <button id="scanBtn">スキャン開始</button>
                 <input type="file" id="folderPicker" webkitdirectory directory multiple style="display:none;" />
+            </div>
+
+            <div id="folderList" class="folder-list hidden">
+                <span class="folder-list-label">スキャン対象フォルダ</span>
+                <ul id="folderListItems"></ul>
             </div>
 
             <div id="loading" class="hidden">

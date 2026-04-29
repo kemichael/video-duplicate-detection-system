@@ -97,7 +97,14 @@ async function getFileHashCached(filePath) {
 
 async function getFiles(dir) {
     let results = [];
-    const list = await fs.readdir(dir, { withFileTypes: true });
+    let list;
+    try {
+        list = await fs.readdir(dir, { withFileTypes: true });
+    } catch (e) {
+        // 権限エラー等で読めないフォルダはスキップして再帰を継続
+        console.error(`readdir failed: ${dir}`, e.message || e);
+        return results;
+    }
     for (const dirent of list) {
         const res = path.resolve(dir, dirent.name);
         if (dirent.isDirectory()) {
@@ -322,15 +329,25 @@ async function runWithLimit(tasks, concurrency) {
 
 // ---- API ----
 
-app.get('/api/scan', async (req, res) => {
-    const scanPath = req.query.path;
-    if (!scanPath) {
-        return res.status(400).json({ error: 'Path is required' });
+app.post('/api/scan', async (req, res) => {
+    const rawPaths = Array.isArray(req.body?.paths) ? req.body.paths : [];
+    const scanPaths = [...new Set(
+        rawPaths
+            .filter((p) => typeof p === 'string' && p.trim().length > 0)
+            .map((p) => path.resolve(p.trim()))
+    )];
+    if (scanPaths.length === 0) {
+        return res.status(400).json({ error: 'paths is required' });
     }
 
     try {
         await clearThumbDir();
-        const files = await getFiles(scanPath);
+        const fileSet = new Set();
+        for (const p of scanPaths) {
+            const found = await getFiles(p);
+            for (const f of found) fileSet.add(f);
+        }
+        const files = Array.from(fileSet);
 
         // ファイルサイズの取得
         const sizeByPath = new Map();
