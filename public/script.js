@@ -2,11 +2,16 @@ const scanBtn = document.getElementById('scanBtn');
 const folderPathInput = document.getElementById('folderPath');
 const folderSelectBtn = document.getElementById('folderSelectBtn');
 const folderPicker = document.getElementById('folderPicker');
+const addPathBtn = document.getElementById('addPathBtn');
+const folderListDiv = document.getElementById('folderList');
+const folderListItems = document.getElementById('folderListItems');
 const loadingDiv = document.getElementById('loading');
 const resultsDiv = document.getElementById('results');
 const duplicatesList = document.getElementById('duplicatesList');
 const deleteBtn = document.getElementById('deleteBtn');
 const emptyState = document.getElementById('emptyState');
+
+const selectedPaths = [];
 
 // Modal elements
 const modalOverlay = document.getElementById('modalOverlay');
@@ -87,6 +92,45 @@ modalOkBtn.addEventListener('click', () => {
     closeModal();
 });
 
+function renderFolderList() {
+    folderListItems.innerHTML = '';
+    if (selectedPaths.length === 0) {
+        folderListDiv.classList.add('hidden');
+        return;
+    }
+    folderListDiv.classList.remove('hidden');
+    selectedPaths.forEach((p, idx) => {
+        const li = document.createElement('li');
+        li.className = 'folder-list-item';
+
+        const pathSpan = document.createElement('span');
+        pathSpan.className = 'folder-list-path';
+        pathSpan.textContent = p;
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'folder-list-remove';
+        removeBtn.textContent = '×';
+        removeBtn.title = '削除';
+        removeBtn.addEventListener('click', () => {
+            selectedPaths.splice(idx, 1);
+            renderFolderList();
+        });
+
+        li.appendChild(pathSpan);
+        li.appendChild(removeBtn);
+        folderListItems.appendChild(li);
+    });
+}
+
+function addPath(rawPath) {
+    const p = (rawPath || '').trim();
+    if (!p) return false;
+    if (selectedPaths.includes(p)) return false;
+    selectedPaths.push(p);
+    renderFolderList();
+    return true;
+}
+
 if (folderSelectBtn && folderPicker) {
     folderSelectBtn.addEventListener('click', () => {
         folderPicker.value = '';
@@ -100,14 +144,39 @@ if (folderSelectBtn && folderPicker) {
             await showModal('情報', 'ブラウザの制限によりフォルダパスを取得できません。手入力してください。', 'alert');
             return;
         }
-        folderPathInput.value = selectedFolder;
+        if (!addPath(selectedFolder)) {
+            folderPathInput.value = selectedFolder;
+        } else {
+            folderPathInput.value = '';
+        }
     });
 }
 
+addPathBtn.addEventListener('click', () => {
+    const value = folderPathInput.value.trim();
+    if (!value) return;
+    addPath(value);
+    folderPathInput.value = '';
+    folderPathInput.focus();
+});
+
+folderPathInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        addPathBtn.click();
+    }
+});
+
 scanBtn.addEventListener('click', async () => {
-    const path = folderPathInput.value.trim();
-    if (!path) {
-        await showModal('エラー', 'フォルダパスを入力してください', 'alert');
+    // 入力欄に未追加のパスがあれば自動で追加
+    const pendingValue = folderPathInput.value.trim();
+    if (pendingValue) {
+        addPath(pendingValue);
+        folderPathInput.value = '';
+    }
+
+    if (selectedPaths.length === 0) {
+        await showModal('エラー', 'スキャン対象のフォルダを1つ以上指定してください', 'alert');
         return;
     }
 
@@ -117,7 +186,11 @@ scanBtn.addEventListener('click', async () => {
     scanBtn.disabled = true;
 
     try {
-        const response = await fetch(`/api/scan?path=${encodeURIComponent(path)}`);
+        const response = await fetch('/api/scan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paths: selectedPaths })
+        });
         const data = await response.json();
 
         if (data.error) {
